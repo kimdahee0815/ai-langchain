@@ -17,14 +17,15 @@ parser = StrOutputParser()
 
 INPUT = {"topic": "LCEL"}
 
-prompt_value = prompt.invoke(INPUT) # dict -> ChatPromptValue
-print(type(prompt_value))
-ai_message = model.invoke(prompt_value) # ChatPromptValue -> AIMessage
-print(type(ai_message))
-# str_output = parser(ai_message) # AIMessage -> str
-
 chain = prompt | model | parser
 
-invoke_result = chain.invoke(INPUT) # dict ....... => TextAccesor (str)
-print(type(invoke_result))
-print(invoke_result)
+chain.stream(INPUT)
+
+stream_chunks = []
+for chunk in chain.stream(INPUT):
+    print(chunk, end="", flush=True)
+    stream_chunks.append(chunk)
+    
+print()
+print("[stream] chunk 수: ", len(stream_chunks))
+print("[stream] 합친 결과: ", "".join(stream_chunks))
