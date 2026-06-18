@@ -40,3 +40,15 @@ builder.add_edge("generate",END)
 
 graph = builder.compile()
 print("graph compile 통과")
+
+result = graph.invoke({
+    "question": "휴가 규정은?",
+    "docs": [],
+    "answer": "",
+    "quality": {},
+    "attempts": 0,
+    "route_log": []
+})
+
+print(result["answer"])
+print(result["quality"])
