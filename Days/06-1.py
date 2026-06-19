@@ -1,4 +1,7 @@
 from typing import Any, Literal, TypedDict
+from langgraph.graph import END
+from langgraph.graph import START
+from langgraph.graph import StateGraph
 
 MAX_RETRIES = 1 # attempts cap: 재검색은 전체 실행에서 1회만 허용
 
@@ -14,6 +17,7 @@ class RagState(TypedDict):
 def should_retry(state: RagState) -> Literal["retry", "generate"]:
     """route: state를 읽기만 하고 label 문자열만 반환"""
     quality_ok = state.get("quality", {}).get("passed", False)
+    print("===== Should_retry =====")
     if not quality_ok and state.get("attempts", 0) < MAX_RETRIES:
         return "retry"
     return "generate"
@@ -34,6 +38,7 @@ def prepare_retry(state: RagState) -> dict[str, Any]:
         "decision": "retry",
         "reason": "insufficient sources"
         }
+    print("===== Prepare_retry =====")
     return {
         "attempts": state.get("attempts",0)+1,
         "rotate_log": [*state.get("routine_log", []), new_log]
@@ -63,4 +68,43 @@ def generate(state: RagState) -> dict[str, Any]:
     
 def retrieve(state: RagState) -> dict[str, Any]:
     """실제 벡터 DB 연결 = retriever.invoke(state['question'])"""
-    pass
+    if "연차" in state["question"]:
+        docs = [
+            {"text": "연차는 입사 1년 차에 15일이 부여됩니다."},
+            {"text": "미사용 연차는 최대 5일까지 이월할 수 있습니다."}
+        ]
+    else:
+        docs = [{"text": f"부분 일치 자료 1건: {state['question']}"}]
+        
+    return {"docs":docs}
+
+builder = StateGraph(RagState)
+builder.add_node("retrieve", retrieve)
+builder.add_node("grade", grade)
+builder.add_node("generate", generate)
+builder.add_node("prepare_retry", prepare_retry)
+
+builder.add_edge(START, "retrieve")
+builder.add_edge("retrieve", "grade")
+builder.add_conditional_edges(
+    "grade",
+    should_retry,
+    {"retry": "prepare_retry", "generate":"generate"}
+)
+builder.add_edge("prepare_retry", "retrieve")
+builder.add_edge("generate", END)
+
+graph = builder.compile()
+print("compile ok:", type(graph).__name__)
+
+result = graph.invoke({
+    "question": "휴가 규정은?",
+    "docs": [],
+    "answer": "",
+    "quality": {},
+    "attempts": 0,
+    "route_log": []
+})
+
+print(result["answer"])
+print(result["quality"])

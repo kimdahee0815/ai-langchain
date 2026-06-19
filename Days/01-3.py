@@ -1,6 +1,6 @@
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
-from models import get_model
+from Days.models import get_model
 
 model = get_model()
 
