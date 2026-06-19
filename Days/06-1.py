@@ -41,7 +41,7 @@ def prepare_retry(state: RagState) -> dict[str, Any]:
     print("===== Prepare_retry =====")
     return {
         "attempts": state.get("attempts",0)+1,
-        "rotate_log": [*state.get("routine_log", []), new_log]
+        "rotate_log": [*state.get("route_log", []), new_log]
     }
     
 
